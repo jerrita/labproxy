@@ -7,10 +7,20 @@ import (
 	"net"
 )
 
+type NetMap struct {
+	Src int
+	Dst int
+}
+
 var Config struct {
 	EndPoint string
 	Api      string
 	Password string
+}
+
+var MAPPER = [...]NetMap{
+	{80, 80},
+	{443, 443},
 }
 
 func simpleForward(src, dst net.Conn) {
@@ -46,7 +56,7 @@ func proxy(c net.Listener) {
 }
 
 func main() {
-	ep := flag.String("endpoint", "localhost:8080", "The endpoint to proxy to (tcp only)")
+	ep := flag.String("endpoint", "localhost", "The endpoint to proxy to (domain/ip)")
 	api := flag.String("api", ":4136", "Manager api path")
 	password := flag.String("password", "", "Manager password")
 	flag.Parse()
@@ -55,17 +65,16 @@ func main() {
 	Config.Api = *api
 	Config.Password = *password
 
-	fmt.Println("Starting proxy on :80 and :443, forwarding to", Config.EndPoint)
 	fmt.Println("Manager API on", Config.Api)
 
-	l, e := net.Listen("tcp", ":80")
-	if e != nil {
-		panic(e)
+	for _, m := range MAPPER {
+		fmt.Println("Mapping ", m.Src, " to ", m.Dst)
+		l, e := net.Listen("tcp", fmt.Sprintf(":%d", m.Src))
+		if e != nil {
+			panic(e)
+		}
+		go proxy(l)
 	}
-	go proxy(l)
-	l, e = net.Listen("tcp", ":443")
-	if e != nil {
-		panic(e)
-	}
-	proxy(l)
+
+	select {}
 }
