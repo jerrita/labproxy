@@ -34,8 +34,8 @@ func simpleForward(src, dst net.Conn) {
 	}
 }
 
-func handleConn(c net.Conn) {
-	remote, err := net.Dial("tcp", Config.EndPoint)
+func handleConn(c net.Conn, dst int) {
+	remote, err := net.Dial("tcp", fmt.Sprintf("%s:%d", Config.EndPoint, dst))
 	if err != nil {
 		fmt.Println("Error dialing remote:", err)
 		c.Close()
@@ -45,13 +45,13 @@ func handleConn(c net.Conn) {
 	go simpleForward(remote, c)
 }
 
-func proxy(c net.Listener) {
+func proxy(c net.Listener, dst int) {
 	for {
 		conn, err := c.Accept()
 		if err != nil {
 			continue
 		}
-		go handleConn(conn)
+		go handleConn(conn, dst)
 	}
 }
 
@@ -73,7 +73,7 @@ func main() {
 		if e != nil {
 			panic(e)
 		}
-		go proxy(l)
+		go proxy(l, m.Dst)
 	}
 
 	select {}
