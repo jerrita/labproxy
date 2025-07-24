@@ -1,27 +1,24 @@
 package main
 
 import (
-	"flag"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
+	"os"
 )
 
 type NetMap struct {
-	Src int
-	Dst int
+	Src      int    `json:"src"`
+	Dst      int    `json:"dst"`
+	EndPoint string `json:"endpoint"`
 }
 
-var Config struct {
-	EndPoint string
-	Api      string
-	Password string
+type Config struct {
+	Mappings []NetMap `json:"mappings"`
 }
 
-var MAPPER = [...]NetMap{
-	{80, 80},
-	{443, 443},
-}
+var MAPPER []NetMap
 
 func simpleForward(src, dst net.Conn) {
 	defer src.Close()
@@ -34,8 +31,8 @@ func simpleForward(src, dst net.Conn) {
 	}
 }
 
-func handleConn(c net.Conn, dst int) {
-	remote, err := net.Dial("tcp", fmt.Sprintf("%s:%d", Config.EndPoint, dst))
+func handleConn(c net.Conn, dst int, endpoint string) {
+	remote, err := net.Dial("tcp", fmt.Sprintf("%s:%d", endpoint, dst))
 	if err != nil {
 		fmt.Println("Error dialing remote:", err)
 		c.Close()
@@ -45,35 +42,54 @@ func handleConn(c net.Conn, dst int) {
 	go simpleForward(remote, c)
 }
 
-func proxy(c net.Listener, dst int) {
+func proxy(c net.Listener, dst int, endpoint string) {
 	for {
 		conn, err := c.Accept()
 		if err != nil {
 			continue
 		}
-		go handleConn(conn, dst)
+		go handleConn(conn, dst, endpoint)
 	}
 }
 
+func loadConfig(filename string) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("failed to read config file %s: %v", filename, err)
+	}
+
+	var config Config
+	if err := json.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("failed to parse config file: %v", err)
+	}
+
+	MAPPER = config.Mappings
+	return nil
+}
+
 func main() {
-	ep := flag.String("endpoint", "localhost", "The endpoint to proxy to (domain/ip)")
-	api := flag.String("api", ":4136", "Manager api path")
-	password := flag.String("password", "", "Manager password")
-	flag.Parse()
+	configFile := "config.json"
+	if len(os.Args) > 1 {
+		configFile = os.Args[1]
+	}
 
-	Config.EndPoint = *ep
-	Config.Api = *api
-	Config.Password = *password
+	if err := loadConfig(configFile); err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
 
-	fmt.Println("Manager API on", Config.Api)
+	if len(MAPPER) == 0 {
+		fmt.Println("No mappings found in config file")
+		os.Exit(1)
+	}
 
 	for _, m := range MAPPER {
-		fmt.Println("Mapping ", m.Src, " to ", m.Dst)
+		fmt.Println("Mapping ", m.Src, " to ", m.Dst, " on ", m.EndPoint)
 		l, e := net.Listen("tcp", fmt.Sprintf(":%d", m.Src))
 		if e != nil {
 			panic(e)
 		}
-		go proxy(l, m.Dst)
+		go proxy(l, m.Dst, m.EndPoint)
 	}
 
 	select {}

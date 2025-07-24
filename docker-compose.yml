@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  labproxy:
+    image: ghcr.io/yourusername/labproxy:latest
+    container_name: labproxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config.json:/root/config.json:ro
+    restart: unless-stopped
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    driver: bridge

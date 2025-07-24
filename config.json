@@ -1,0 +1,14 @@
+{
+  "mappings": [
+    {
+      "src": 80,
+      "dst": 80,
+      "endpoint": "google.com"
+    },
+    {
+      "src": 443,
+      "dst": 443,
+      "endpoint": "google.com"
+    }
+  ]
+}
