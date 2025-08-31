@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  labproxy:
+    image: ghcr.io/jerrita/labproxy:latest
+    container_name: labproxy
+    network_mode: host
+    volumes:
+      - ./config.json:/etc/labproxy.json:ro
+    restart: unless-stopped
