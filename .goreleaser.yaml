@@ -22,7 +22,6 @@ builds:
 nfpms:
   - id: default
     package_name: labproxy
-    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
     vendor: "jerrita"
     homepage: "https://github.com/jerrita/labproxy"
