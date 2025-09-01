@@ -1,0 +1,12 @@
+[Unit]
+Description=labproxy
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/labproxy
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+

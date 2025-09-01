@@ -1,0 +1,57 @@
+version: 2
+
+builds:
+  - id: labproxy
+    main: ./main.go
+    binary: labproxy
+    goos:
+      - linux
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+nfpms:
+  - id: default
+    package_name: labproxy
+    file_name_template: "{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+    vendor: "jerrita"
+    homepage: "https://github.com/jerrita/labproxy"
+    maintainer: "jerrita <je5r1ta@icloud.com>"
+    description: "labproxy with systemd and config"
+    license: "MIT"
+
+    formats:
+      - rpm
+    bindir: /usr/bin
+    dependencies:
+      - systemd
+
+    contents:
+      - src: config.json
+        dst: /etc/labproxy.json
+        type: config
+        file_info:
+          mode: 0644
+          owner: root
+          group: root
+      - src: scripts/labproxy.service
+        dst: /etc/systemd/system/labproxy.service
+        file_info:
+          mode: 0644
+          owner: root
+          group: root
+
+    scripts:
+      postinstall: scripts/postinstall.sh
+      preremove: scripts/preremove.sh
+
+    rpm:
+      summary: "Labproxy Service"
+      group: "Applications/System"
+      compression: gzip
+
